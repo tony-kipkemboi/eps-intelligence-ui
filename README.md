@@ -126,4 +126,4 @@ npm run format    # Format only
 
 ## Support
 
-For issues or questions, contact the EPS Data & Analytics team.
+For issues or questions, contact Tony Kipkemboi (Business Systems & IT team).
