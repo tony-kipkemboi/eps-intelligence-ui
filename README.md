@@ -2,6 +2,8 @@
 
 An AI-powered account intelligence agent for Guild's Employer Partner Success (EPS) team. Get instant insights about employer accounts by querying data from Salesforce, Google Drive, Gong, Gmail, Slack, and more.
 
+![EPS Intelligence Demo](./docs/images/eps-ui.png)
+
 ## Features
 
 - **Account Intelligence**: Ask questions about any employer partner account
