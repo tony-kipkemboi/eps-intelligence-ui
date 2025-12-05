@@ -1,8 +1,8 @@
-# Databricks E2E Chatbot Application - Context for Claude
+# EPS Intelligence - Context for Claude
 
 ## Project Overview
 
-This is a production-ready, full-stack chatbot application built specifically for **Databricks environments**. It provides a web-based chat interface for interacting with Databricks Agent Serving endpoints, Agent Bricks, and Foundation Model endpoints.
+This is Guild's **EPS Account Intelligence Agent** - an AI-powered application that helps the Employer Partner Success (EPS) team get instant insights about employer accounts. It queries data from Salesforce, Google Drive, Gong, Gmail, and Slack via Glean integration, all served through a Databricks Agent endpoint.
 
 **Key characteristics:**
 
@@ -17,7 +17,7 @@ This is a production-ready, full-stack chatbot application built specifically fo
 ### Monorepo Structure
 
 ```
-e2e-chatbot-app-next/
+eps-chatbot/
 ├── client/                 # React + Vite frontend (@databricks/chatbot-client)
 ├── server/                 # Express backend (@databricks/chatbot-server)
 └── packages/              # Shared libraries
@@ -473,11 +473,11 @@ The `databricks.yml` file defines:
 
 1. **Lakebase Database Instance** - Managed PostgreSQL
 
-   - Name: `chatbot-lakebase-{suffix}`
+   - Name: `eps-intelligence-lakebase-{suffix}`
    - Capacity: CU_1 (customizable)
 
 2. **Databricks App** - Hosted application
-   - Name: `db-chatbot-{suffix}`
+   - Name: `eps-intelligence-{suffix}`
    - Resources:
      - Serving endpoint (with CAN_QUERY permission)
      - Database (with CAN_CONNECT_AND_CREATE permission)
@@ -535,12 +535,29 @@ resources:
 ## Repository Etiquette
 
 - **Main branch**: `main`
-- **Current branch**: `remove-nextjs` (feature branch)
 - **Commit messages**: Concise, imperative mood
 - **Testing**: Run `npm test` before committing
 - **Linting**: Run `npm run lint` to auto-fix issues
 - **Database changes**: Always generate migrations, never use db:push in production
 - **Dependencies**: Add to appropriate workspace, not root (except for build tools)
+
+## EPS Intelligence Customizations
+
+This app has been customized for Guild's EPS team:
+
+- **App name**: "EPS Intelligence"
+- **Branding**: Guild logo and brand colors (Orange #ED732E, Gold #C29832, Redwood #BF6B45)
+- **Suggested prompts**: EPS-specific account queries (Wellstar, AdventHealth examples)
+- **Agent endpoint**: `agents_eps_intelligence-agents-eps_account_agent`
+- **Data sources**: Glean integration for Salesforce, Google Drive, Gong, Gmail, Slack
+
+Key customization files:
+- `client/src/components/app-sidebar.tsx` - Sidebar with Guild logo
+- `client/src/components/greeting.tsx` - Welcome message
+- `client/src/components/suggested-actions.tsx` - Example prompts
+- `client/src/components/animation-assistant-icon.tsx` - Guild brand colors
+- `client/index.html` - Browser title
+- `client/public/guild-logo.svg` and `guild-icon.svg` - Brand assets
 
 ---
 

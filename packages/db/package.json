@@ -22,7 +22,10 @@
       }
     }
   },
-  "files": ["dist", "migrations"],
+  "files": [
+    "dist",
+    "migrations"
+  ],
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
@@ -34,8 +37,9 @@
   "dependencies": {
     "@chat-template/auth": "*",
     "@chat-template/utils": "*",
+    "drizzle-kit": "^0.31.7",
     "drizzle-orm": "^0.44.6",
-    "drizzle-kit": "^0.31.5",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "react-syntax-highlighter": "16.1.0"
   }
 }

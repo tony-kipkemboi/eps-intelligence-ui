@@ -1,5 +1,5 @@
 bundle:
-  name: databricks-chatbot
+  name: eps-intelligence
 
 variables:
   serving_endpoint_name:
@@ -8,7 +8,7 @@ variables:
     default: "agents_eps_intelligence-agents-eps_account_agent"
   database_instance_name:
     description: "Base name of the Lakebase database instance"
-    default: "chatbot-lakebase"
+    default: "eps-intelligence-lakebase"
   resource_name_suffix:
     description: "Suffix for resource names (app/lakebase instance names etc). Helpful for avoiding name collisions if multiple users deploy this app to the same workspace"
 
@@ -22,9 +22,8 @@ resources:
 
   apps:
     databricks_chatbot:
-      # NOTE: customize the app name here, if desired
-      name: db-chatbot-${var.resource_name_suffix}
-      description: "Agentic Chat application for Foundation Models, Agent Bricks, and custom code agents"
+      name: eps-intelligence-${var.resource_name_suffix}
+      description: "EPS Account Intelligence Agent - AI-powered account insights across Salesforce, Google Drive, Gong, Gmail, and Slack"
       source_code_path: .
       resources:
         - name: serving-endpoint

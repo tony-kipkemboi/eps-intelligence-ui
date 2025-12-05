@@ -152,15 +152,15 @@ export const AnimatedAssistantIcon = ({
  * This is what creates the illusion of a gradient border.
  */
 export const getAiGradientStyle = () => {
-  // Currently these are the same for both light and dark mode, but we may want to change this in the future.
+  // Guild brand colors
   const branded = {
     ai: {
       /** For AI components, the top-left-oriented start color of gradient treatments. */
-      gradientStart: '#4299E0',
+      gradientStart: '#C29832', // Gold
       /** For AI components, the mid color of gradient treatments. */
-      gradientMid: '#CA42E0',
+      gradientMid: '#ED732E', // Orange (primary)
       /** For AI components, the bottom-right-oriented end color of gradient treatments. */
-      gradientEnd: '#FF5F46',
+      gradientEnd: '#BF6B45', // Redwood
     },
   };
 
