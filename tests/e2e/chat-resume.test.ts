@@ -134,9 +134,9 @@ test.describe('Chat stream resume behavior', () => {
     );
     expect(finishLog).toBeTruthy();
 
-    // When user aborts, isAbort should be true
+    // When user aborts, the log should indicate abortion
     if (finishLog) {
-      expect(finishLog).toMatch(/isAbort.*true|true.*isAbort/);
+      expect(finishLog).toMatch(/aborted/i);
     }
   });
 });
