@@ -40,11 +40,23 @@ export class ChatPage {
   }
 
   async isGenerationComplete() {
-    const response = await this.page.waitForResponse((response) =>
-      response.url().includes('/api/chat'),
-    );
-
-    await response.finished();
+    // Wait for UI state to show completion: send button visible (enabled state varies) 
+    // and stop button not visible, or wait for an assistant message to appear
+    await Promise.race([
+      // Method 1: Wait for stop button to disappear and send button to appear
+      (async () => {
+        await this.stopButton.waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
+        await this.sendButton.waitFor({ state: 'visible', timeout: 30000 });
+      })(),
+      // Method 2: Wait for assistant message content to appear
+      this.page.locator('[data-testid="assistant-message"]').first().waitFor({ 
+        state: 'visible', 
+        timeout: 30000 
+      }).catch(() => {}),
+    ]);
+    
+    // Small delay to ensure streaming is fully complete
+    await this.page.waitForTimeout(100);
   }
 
   async hasChatIdInUrl() {

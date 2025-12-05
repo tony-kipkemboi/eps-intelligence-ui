@@ -77,10 +77,7 @@ jobs:
           if-no-files-found: ignore
 
   # Test without database (ephemeral mode)
-  # TODO: Ephemeral tests have systemic timeout issues in CI - mock server not responding
-  # Re-enable when mock server is fixed
   test-ephemeral:
-    if: false  # Disabled - see TODO above
     name: Tests without Database (Ephemeral)
     timeout-minutes: 30
     runs-on: ubuntu-latest
