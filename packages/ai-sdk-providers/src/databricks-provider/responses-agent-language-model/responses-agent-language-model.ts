@@ -168,6 +168,13 @@ export class DatabricksResponsesAgentLanguageModel implements LanguageModelV2 {
       prompt: options.prompt,
       systemMessageMode: 'system',
     });
+
+    // Extract Databricks-specific context from providerOptions for MLflow tracing
+    // See: https://mlflow.org/docs/latest/genai/tracing/track-users-sessions/
+    const databricksOptions = options.providerOptions?.databricks as
+      | { context?: { user_id?: string; conversation_id?: string } }
+      | undefined;
+
     return {
       url: config.url({
         path: '/responses',
@@ -177,6 +184,8 @@ export class DatabricksResponsesAgentLanguageModel implements LanguageModelV2 {
         model: modelId,
         input,
         stream,
+        // Include context for user/session tracking if provided
+        ...(databricksOptions?.context && { context: databricksOptions.context }),
       },
       fetch: config.fetch,
     };

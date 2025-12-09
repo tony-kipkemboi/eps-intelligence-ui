@@ -157,6 +157,16 @@ chatRouter.post('/', requireAuth, async (req: Request, res: Response) => {
     const result = streamText({
       model,
       messages: convertToModelMessages(uiMessages),
+      // Pass user and session context for MLflow tracing
+      // See: https://mlflow.org/docs/latest/genai/tracing/track-users-sessions/
+      providerOptions: {
+        databricks: {
+          context: {
+            user_id: session.user.id,
+            conversation_id: id,
+          },
+        },
+      },
       onFinish: ({ usage }) => {
         finalUsage = usage;
       },
