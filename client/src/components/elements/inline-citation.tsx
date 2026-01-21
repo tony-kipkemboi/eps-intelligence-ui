@@ -98,7 +98,7 @@ const InlineCitationTrigger = forwardRef<
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+        className='inline-flex items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 font-medium text-secondary-foreground text-xs transition-colors hover:bg-secondary/80'
       >
         <span className="max-w-[120px] truncate">
           {children || hostname || 'Source'}
@@ -127,7 +127,7 @@ const InlineCitationContent = forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'z-50 w-80 rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg outline-none',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:animate-out data-[state=open]:animate-in',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
@@ -186,7 +186,7 @@ const InlineCitationSource = memo(
             datasource={source.datasource}
             className="text-muted-foreground"
           />
-          <span className="text-xs text-muted-foreground">{hostname}</span>
+          <span className='text-muted-foreground text-xs'>{hostname}</span>
         </div>
 
         {/* Title */}
@@ -201,14 +201,14 @@ const InlineCitationSource = memo(
 
         {/* Content snippet */}
         {source.content && (
-          <p className="line-clamp-3 text-xs text-muted-foreground leading-relaxed">
+          <p className='line-clamp-3 text-muted-foreground text-xs leading-relaxed'>
             {source.content}
           </p>
         )}
 
         {/* Metadata row */}
         {(source.author || source.updatedAt) && (
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <div className='flex flex-wrap items-center gap-3 text-muted-foreground text-xs'>
             {source.author && (
               <span className="flex items-center gap-1">
                 <UserIcon className="size-3" />

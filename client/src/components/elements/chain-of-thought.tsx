@@ -221,7 +221,7 @@ export const ChainOfThoughtStep = memo(
     return (
       <div
         className={cn(
-          'relative ml-3 border-l-2 border-muted pl-4 pb-3 last:border-transparent last:pb-0',
+          'relative ml-3 border-muted border-l-2 pb-3 pl-4 last:border-transparent last:pb-0',
           className,
         )}
         {...props}

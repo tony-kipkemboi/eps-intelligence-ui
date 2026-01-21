@@ -93,8 +93,8 @@ export function parseToolOutputSources(output: string): ParsedSource[] {
     const simplePattern =
       /\*\*([^*]+)\*\*[\s\S]*?(?:URL|url|Link|link):\s*(https?:\/\/[^\s\n]+)/gi;
 
-    let match: RegExpExecArray | null;
-    while ((match = simplePattern.exec(output)) !== null) {
+    let match: RegExpExecArray | null = simplePattern.exec(output);
+    while (match !== null) {
       const [, rawTitle, url] = match;
       if (rawTitle && url) {
         sources.push({
@@ -103,6 +103,7 @@ export function parseToolOutputSources(output: string): ParsedSource[] {
           datasource: inferDatasource(url),
         });
       }
+      match = simplePattern.exec(output);
     }
   }
 

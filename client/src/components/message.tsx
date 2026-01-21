@@ -61,7 +61,7 @@ const isToolPart = (
 };
 
 // Group consecutive tool parts together
-const groupToolParts = (
+const _groupToolParts = (
   segments: ChatMessage['parts'][],
 ): Array<{ type: 'tools'; parts: ToolPart[] } | { type: 'other'; parts: ChatMessage['parts'] }> => {
   const result: Array<
@@ -236,13 +236,13 @@ const PurePreviewMessage = ({
 
                   return allSources.length > 0 ? (
                     <div className="mb-4 space-y-2 px-3">
-                      <h4 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                      <h4 className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
                         Sources Found
                       </h4>
                       <ChainOfThoughtSearchResults>
-                        {allSources.map((source, idx) => (
+                        {allSources.map((source) => (
                           <ChainOfThoughtSearchResult
-                            key={`source-${idx}`}
+                            key={source.url}
                             href={source.url}
                             datasource={source.datasource}
                           >
@@ -334,7 +334,7 @@ const PurePreviewMessage = ({
                     <MessageContent
                       data-testid="message-content"
                       className={cn({
-                        'w-fit break-words rounded-2xl px-3 py-2 text-right text-foreground bg-muted':
+                        'w-fit break-words rounded-2xl bg-muted px-3 py-2 text-right text-foreground':
                           message.role === 'user',
                         'bg-transparent px-0 py-0 text-left':
                           message.role === 'assistant',
