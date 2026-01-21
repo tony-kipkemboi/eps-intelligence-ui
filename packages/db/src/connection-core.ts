@@ -30,12 +30,26 @@ export function getSchemaName(): string {
  */
 export function getDatabaseConfigFromEnv(): DatabaseConfig | null {
   const pgHost = process.env.PGHOST;
-  const pgPort = process.env.PGPORT || '5432';
-  const pgDatabase = process.env.PGDATABASE;
+  let pgPort = process.env.PGPORT || '5432';
+  let pgDatabase = process.env.PGDATABASE;
   const pgSSLMode = process.env.PGSSLMODE || 'require';
 
   if (!pgHost || !pgDatabase) {
     return null;
+  }
+
+  // Workaround: Databricks Apps may incorrectly set PGPORT and PGDATABASE to the hostname
+  // If these contain the hostname pattern, use defaults instead
+  if (pgPort.includes('.database.cloud.databricks.com')) {
+    console.warn(`[getDatabaseConfigFromEnv] PGPORT is malformed (contains hostname: ${pgPort}), using default 5432`);
+    pgPort = '5432';
+  }
+
+  if (pgDatabase.includes('.database.cloud.databricks.com')) {
+    console.warn(`[getDatabaseConfigFromEnv] PGDATABASE is malformed (contains hostname: ${pgDatabase}), using databricks_postgres`);
+    // Databricks Lakebase always uses 'databricks_postgres' as the database name
+    pgDatabase = 'databricks_postgres';
+    console.log(`[getDatabaseConfigFromEnv] Using database name: ${pgDatabase}`);
   }
 
   return {

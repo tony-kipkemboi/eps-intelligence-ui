@@ -5,7 +5,8 @@ type ErrorType =
   | 'not_found'
   | 'rate_limit'
   | 'offline'
-  | 'empty';
+  | 'empty'
+  | 'session_expired';
 
 type Surface =
   | 'chat'
@@ -100,6 +101,8 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
     case 'forbidden:auth':
       return 'Your account does not have access to this feature.';
 
+    case 'bad_request:chat':
+      return 'There was a problem with your request. Please try refreshing the page.';
     case 'rate_limit:chat':
       return 'You have exceeded your maximum number of messages for the day. Please try again later.';
     case 'not_found:chat':
@@ -108,6 +111,8 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return 'This chat belongs to another user. Please check the chat ID and try again.';
     case 'unauthorized:chat':
       return 'You need to sign in to view this chat. Please sign in and try again.';
+    case 'session_expired:chat':
+      return 'Your session has expired. Please refresh the page to sign in again.';
     case 'offline:chat':
       return "We're having trouble sending your message. Please check your internet connection and try again.";
 
@@ -121,6 +126,8 @@ function getStatusCodeByType(type: ErrorType) {
     case 'bad_request':
       return 400;
     case 'unauthorized':
+      return 401;
+    case 'session_expired':
       return 401;
     case 'forbidden':
       return 403;

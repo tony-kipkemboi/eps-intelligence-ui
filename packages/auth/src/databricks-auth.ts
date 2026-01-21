@@ -402,6 +402,14 @@ export async function getDatabaseUsername(): Promise<string> {
           'PGUSER environment variable must be set for OAuth authentication',
         );
       }
+
+      // Workaround: Databricks Apps may incorrectly set PGUSER to the database hostname
+      // If PGUSER looks like a hostname, fall back to getting username from CLI
+      if (pgUser.includes('.database.cloud.databricks.com')) {
+        console.warn('[OAuth] PGUSER is malformed (contains hostname), falling back to CLI auth');
+        return await getDatabricksUserIdentity();
+      }
+
       return pgUser;
     }
 

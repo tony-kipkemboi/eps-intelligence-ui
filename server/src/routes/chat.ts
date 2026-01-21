@@ -87,12 +87,33 @@ chatRouter.post('/', requireAuth, async (req: Request, res: Response) => {
       selectedVisibilityType: VisibilityType;
     } = requestBody;
 
+    // Validate that the user is authenticated
     const session = req.session;
     if (!session) {
-      const error = new ChatSDKError('unauthorized:chat');
+      console.error('[Chat] Session expired or not found');
+      const error = new ChatSDKError('session_expired:chat');
       const response = error.toResponse();
       return res.status(response.status).json(response.json);
     }
+
+    // Validate that user email is available (required for ActAs authentication with Glean)
+    if (!session.user.email) {
+      console.error('[Chat] No user email available for user', session.user.id);
+      const error = new ChatSDKError('unauthorized:chat', 'User email not found in session');
+      const response = error.toResponse();
+      return res.status(response.status).json(response.json);
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(session.user.email)) {
+      console.error('[Chat] Invalid email format:', session.user.email);
+      const error = new ChatSDKError('bad_request:chat', 'Invalid email format');
+      const response = error.toResponse();
+      return res.status(response.status).json(response.json);
+    }
+
+    console.log(`[Chat] Processing request for user ${session.user.id}: ${session.user.email}`);
 
     const { chat, allowed, reason } = await checkChatAccess(
       id,
@@ -157,13 +178,17 @@ chatRouter.post('/', requireAuth, async (req: Request, res: Response) => {
     const result = streamText({
       model,
       messages: convertToModelMessages(uiMessages),
-      // Pass user and session context for MLflow tracing
-      // See: https://mlflow.org/docs/latest/genai/tracing/track-users-sessions/
+      // Pass user session context for MLflow tracing and OAuth token via custom_inputs
+      // See: https://mlflow.org/docs/latest/genai/serving/responses-agent/
       providerOptions: {
         databricks: {
           context: {
             user_id: session.user.id,
             conversation_id: id,
+          },
+          custom_inputs: {
+            // The backend agent reads this from request.custom_inputs and uses it in X-Glean-ActAs header
+            user_email: session.user.email,
           },
         },
       },

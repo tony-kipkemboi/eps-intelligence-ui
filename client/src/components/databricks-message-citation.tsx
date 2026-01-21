@@ -4,8 +4,15 @@ import type {
   ComponentType,
   PropsWithChildren,
 } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
+import {
+  InlineCitation,
+  InlineCitationContent,
+  InlineCitationSource,
+  InlineCitationTrigger,
+  useSourceRegistry,
+  type SourceMetadata,
+} from './elements/inline-citation';
 
 /**
  * ReactMarkdown/Streamdown component that handles Databricks message citations.
@@ -27,8 +34,6 @@ export const DatabricksMessageCitationStreamdownIntegration: ComponentType<
   return <DefaultAnchor {...props} />;
 };
 
-// const isFootnoteLink
-
 type SourcePart = Extract<ChatMessage['parts'][number], { type: 'source-url' }>;
 
 // Adds a unique suffix to the link to indicate that it is a Databricks message citation.
@@ -49,30 +54,30 @@ const isDatabricksMessageCitationLink = (
 ): link is `${string}::databricks_citation` =>
   link?.endsWith('::databricks_citation') ?? false;
 
-// Renders the Databricks message citation.
+// Renders the Databricks message citation with rich hover card.
 const DatabricksMessageCitationRenderer = (
   props: PropsWithChildren<{
     href: string;
   }>,
 ) => {
+  const sourceRegistry = useSourceRegistry();
+  const richSource = sourceRegistry?.getSource(props.href);
+
+  // Build source metadata - use registry data if available, fallback to basic
+  const source: SourceMetadata = richSource || {
+    url: props.href,
+    title: (props.children as string) || props.href,
+  };
+
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <DefaultAnchor
-          href={props.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-md bg-muted-foreground px-2 py-0 text-zinc-200"
-        >
-          {props.children}
-        </DefaultAnchor>
-      </TooltipTrigger>
-      <TooltipContent
-        style={{ maxWidth: '300px', padding: '8px', wordWrap: 'break-word' }}
-      >
-        {props.href}
-      </TooltipContent>
-    </Tooltip>
+    <InlineCitation>
+      <InlineCitationTrigger href={props.href}>
+        {props.children}
+      </InlineCitationTrigger>
+      <InlineCitationContent>
+        <InlineCitationSource source={source} />
+      </InlineCitationContent>
+    </InlineCitation>
   );
 };
 

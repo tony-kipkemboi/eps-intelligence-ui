@@ -169,11 +169,21 @@ export class DatabricksResponsesAgentLanguageModel implements LanguageModelV2 {
       systemMessageMode: 'system',
     });
 
-    // Extract Databricks-specific context from providerOptions for MLflow tracing
+    // Extract Databricks-specific options from providerOptions
     // See: https://mlflow.org/docs/latest/genai/tracing/track-users-sessions/
     const databricksOptions = options.providerOptions?.databricks as
-      | { context?: { user_id?: string; conversation_id?: string } }
+      | {
+          context?: { user_id?: string; conversation_id?: string };
+          custom_inputs?: Record<string, any>;
+        }
       | undefined;
+
+    // Debug logging for custom_inputs
+    if (databricksOptions?.custom_inputs) {
+      console.log('[Databricks Provider] custom_inputs present:', Object.keys(databricksOptions.custom_inputs));
+    } else {
+      console.log('[Databricks Provider] NO custom_inputs in providerOptions');
+    }
 
     return {
       url: config.url({
@@ -186,6 +196,8 @@ export class DatabricksResponsesAgentLanguageModel implements LanguageModelV2 {
         stream,
         // Include context for user/session tracking if provided
         ...(databricksOptions?.context && { context: databricksOptions.context }),
+        // Include custom_inputs for passing additional data like OAuth tokens
+        ...(databricksOptions?.custom_inputs && { custom_inputs: databricksOptions.custom_inputs }),
       },
       fetch: config.fetch,
     };

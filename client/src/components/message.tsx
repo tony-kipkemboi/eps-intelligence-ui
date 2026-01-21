@@ -4,12 +4,15 @@ import { AnimatedAssistantIcon } from './animation-assistant-icon';
 import { Response } from './elements/response';
 import { MessageContent } from './elements/message';
 import {
-  Tool,
-  ToolHeader,
-  ToolContent,
-  ToolInput,
-  ToolOutput,
-} from './elements/tool';
+  ChainOfThought,
+  ChainOfThoughtContent,
+  ChainOfThoughtDetails,
+  ChainOfThoughtHeader,
+  ChainOfThoughtSearchResult,
+  ChainOfThoughtSearchResults,
+  ChainOfThoughtStep,
+} from './elements/chain-of-thought';
+import { ToolInput, ToolOutput } from './elements/tool';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import equal from 'fast-deep-equal';
@@ -28,6 +31,61 @@ import {
 import { MessageError } from './message-error';
 import { Streamdown } from 'streamdown';
 import { DATABRICKS_TOOL_CALL_ID } from '@chat-template/ai-sdk-providers/tools';
+import {
+  getToolDisplayName,
+  parseToolOutputSources,
+  type ParsedSource,
+} from '@/lib/parse-tool-output';
+import { SourceRegistryProvider } from './elements/inline-citation';
+
+// Type for tool parts
+type ToolPart = ChatMessage['parts'][number] & {
+  type: `tool-${typeof DATABRICKS_TOOL_CALL_ID}`;
+  toolCallId: string;
+  input: unknown;
+  state: 'input-streaming' | 'input-available' | 'output-available' | 'output-error';
+  output?: unknown;
+  errorText?: string;
+  callProviderMetadata?: {
+    databricks?: {
+      toolName?: string;
+    };
+  };
+};
+
+// Helper to check if a part is a tool part
+const isToolPart = (
+  part: ChatMessage['parts'][number],
+): part is ToolPart => {
+  return part.type === `tool-${DATABRICKS_TOOL_CALL_ID}`;
+};
+
+// Group consecutive tool parts together
+const groupToolParts = (
+  segments: ChatMessage['parts'][],
+): Array<{ type: 'tools'; parts: ToolPart[] } | { type: 'other'; parts: ChatMessage['parts'] }> => {
+  const result: Array<
+    { type: 'tools'; parts: ToolPart[] } | { type: 'other'; parts: ChatMessage['parts'] }
+  > = [];
+
+  for (const segment of segments) {
+    const [part] = segment;
+
+    if (isToolPart(part)) {
+      // Check if the last group is a tools group
+      const lastGroup = result[result.length - 1];
+      if (lastGroup?.type === 'tools') {
+        lastGroup.parts.push(part);
+      } else {
+        result.push({ type: 'tools', parts: [part] });
+      }
+    } else {
+      result.push({ type: 'other', parts: segment });
+    }
+  }
+
+  return result;
+};
 
 const PurePreviewMessage = ({
   message,
@@ -71,6 +129,34 @@ const PurePreviewMessage = ({
       ),
     [message.parts],
   );
+
+  // Collect all tool parts for a single Chain of Thought section
+  const allToolParts = React.useMemo(() => {
+    return message.parts.filter(isToolPart);
+  }, [message.parts]);
+
+  // Filter out tool parts from regular segments (we'll render them separately)
+  const nonToolSegments = React.useMemo(
+    () => partSegments.filter(segment => !isToolPart(segment[0])),
+    [partSegments],
+  );
+
+  // Build source registry from all tool outputs for rich citation hover cards
+  const sourceRegistry = React.useMemo(() => {
+    const allSources: ParsedSource[] = [];
+    
+    for (const part of message.parts) {
+      if (isToolPart(part) && part.state === 'output-available' && part.output) {
+        const output = typeof part.output === 'string'
+          ? part.output
+          : JSON.stringify(part.output);
+        const sources = parseToolOutputSources(output);
+        allSources.push(...sources);
+      }
+    }
+    
+    return allSources;
+  }, [message.parts]);
 
   // Check if message only contains errors (no other content)
   const hasOnlyErrors = React.useMemo(() => {
@@ -125,10 +211,103 @@ const PurePreviewMessage = ({
             </div>
           )}
 
-          {partSegments?.map((parts, index) => {
+          {/* Render all tool calls in a single Chain of Thought section */}
+          {allToolParts.length > 0 && (
+            <ChainOfThought
+              key={`message-${message.id}-tools`}
+              defaultOpen={false}
+              isStreaming={allToolParts.some(
+                (p) => p.state === 'input-streaming' || p.state === 'input-available',
+              )}
+              stepCount={allToolParts.length}
+              completedCount={allToolParts.filter((p) => p.state === 'output-available').length}
+            >
+              <ChainOfThoughtHeader />
+              <ChainOfThoughtContent>
+                {/* Show all sources at top level */}
+                {(() => {
+                  const allSources = allToolParts.flatMap((toolPart) => {
+                    const output =
+                      typeof toolPart.output === 'string'
+                        ? toolPart.output
+                        : JSON.stringify(toolPart.output, null, 2);
+                    return parseToolOutputSources(output || '');
+                  });
+
+                  return allSources.length > 0 ? (
+                    <div className="mb-4 space-y-2 px-3">
+                      <h4 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                        Sources Found
+                      </h4>
+                      <ChainOfThoughtSearchResults>
+                        {allSources.map((source, idx) => (
+                          <ChainOfThoughtSearchResult
+                            key={`source-${idx}`}
+                            href={source.url}
+                            datasource={source.datasource}
+                          >
+                            {source.title}
+                          </ChainOfThoughtSearchResult>
+                        ))}
+                      </ChainOfThoughtSearchResults>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Individual tool steps */}
+                {allToolParts.map((toolPart) => {
+                  const toolName = toolPart.callProviderMetadata?.databricks?.toolName;
+                  const displayName = getToolDisplayName(toolName);
+                  const output =
+                    typeof toolPart.output === 'string'
+                      ? toolPart.output
+                      : JSON.stringify(toolPart.output, null, 2);
+                  const status =
+                    toolPart.state === 'output-available'
+                      ? 'complete'
+                      : toolPart.state === 'output-error'
+                        ? 'error'
+                        : toolPart.state === 'input-available'
+                          ? 'active'
+                          : 'pending';
+
+                  return (
+                    <ChainOfThoughtStep
+                      key={toolPart.toolCallId}
+                      label={displayName}
+                      status={status}
+                    >
+                      <ChainOfThoughtDetails>
+                        <ToolInput input={toolPart.input} />
+                        {toolPart.state === 'output-available' && (
+                          <ToolOutput
+                            output={
+                              <div className="whitespace-pre-wrap font-mono text-sm">
+                                {output}
+                              </div>
+                            }
+                            errorText={undefined}
+                          />
+                        )}
+                        {toolPart.state === 'output-error' && toolPart.errorText && (
+                          <div className="rounded border border-red-200 bg-red-50 p-2 text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+                            Error: {toolPart.errorText}
+                          </div>
+                        )}
+                      </ChainOfThoughtDetails>
+                    </ChainOfThoughtStep>
+                  );
+                })}
+              </ChainOfThoughtContent>
+            </ChainOfThought>
+          )}
+
+          {/* Render non-tool parts */}
+          {nonToolSegments?.map((segment, segmentIndex) => {
+            const key = `message-${message.id}-segment-${segmentIndex}`;
+            const parts = segment;
             const [part] = parts;
             const { type } = part;
-            const key = `message-${message.id}-part-${index}`;
 
             if (type === 'reasoning' && part.text?.trim().length > 0) {
               return (
@@ -161,9 +340,11 @@ const PurePreviewMessage = ({
                           message.role === 'assistant',
                       })}
                     >
-                      <Response>
-                        {sanitizeText(joinMessagePartSegments(parts))}
-                      </Response>
+                      <SourceRegistryProvider sources={sourceRegistry}>
+                        <Response>
+                          {sanitizeText(joinMessagePartSegments(parts))}
+                        </Response>
+                      </SourceRegistryProvider>
                     </MessageContent>
                   </div>
                 );
@@ -190,42 +371,6 @@ const PurePreviewMessage = ({
               }
             }
 
-            // Render Databricks tool calls and results
-            if (part.type === `tool-${DATABRICKS_TOOL_CALL_ID}`) {
-              const { toolCallId, input, state, errorText, output } = part;
-              const toolName =
-                'callProviderMetadata' in part
-                  ? part.callProviderMetadata?.databricks?.toolName?.toString()
-                  : undefined;
-
-              return (
-                <Tool key={toolCallId} defaultOpen={true} state={state}>
-                  <ToolHeader type={toolName || 'tool-call'} state={state} />
-                  <ToolContent>
-                    <ToolInput input={input} />
-                    {state === 'output-available' && (
-                      <ToolOutput
-                        output={
-                          errorText ? (
-                            <div className="rounded border p-2 text-red-500">
-                              Error: {errorText}
-                            </div>
-                          ) : (
-                            <div className="whitespace-pre-wrap font-mono text-sm">
-                              {typeof output === 'string'
-                                ? output
-                                : JSON.stringify(output, null, 2)}
-                            </div>
-                          )
-                        }
-                        errorText={undefined}
-                      />
-                    )}
-                  </ToolContent>
-                </Tool>
-              );
-            }
-
             // Support for citations/annotations
             if (type === 'source-url') {
               return (
@@ -240,6 +385,8 @@ const PurePreviewMessage = ({
                 </a>
               );
             }
+
+            return null;
           })}
 
           {!isReadonly && !hasOnlyErrors && (

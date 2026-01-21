@@ -5,8 +5,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { BrainIcon, ChevronDownIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import { ChevronRightIcon, SparklesIcon } from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
 import { createContext, memo, useContext, useEffect, useState } from 'react';
 import { Response } from './response';
 
@@ -96,7 +96,7 @@ export const Reasoning = memo(
         value={{ isStreaming, isOpen, setIsOpen, duration }}
       >
         <Collapsible
-          className={cn('not-prose', className)}
+          className={cn('not-prose w-full', className)}
           onOpenChange={handleOpenChange}
           open={isOpen}
           {...props}
@@ -108,30 +108,81 @@ export const Reasoning = memo(
   },
 );
 
-type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger>;
+type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
+  title?: string;
+  getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode;
+};
+
+// Format duration in a natural way
+function formatDuration(seconds: number): string {
+  if (seconds < 1) return 'a moment';
+  if (seconds === 1) return 'a second';
+  if (seconds < 60) return `${seconds} seconds`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (remainingSeconds === 0) {
+    return minutes === 1 ? 'a minute' : `${minutes} minutes`;
+  }
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
+// Default message generator
+function defaultThinkingMessage(
+  isStreaming: boolean,
+  duration?: number,
+): ReactNode {
+  if (isStreaming) {
+    return 'Thinking...';
+  }
+  if (duration && duration > 0) {
+    return `Thought for ${formatDuration(duration)}`;
+  }
+  return 'Thoughts';
+}
 
 export const ReasoningTrigger = memo(
-  ({ className, children, ...props }: ReasoningTriggerProps) => {
+  ({
+    className,
+    title,
+    getThinkingMessage = defaultThinkingMessage,
+    children,
+    ...props
+  }: ReasoningTriggerProps) => {
     const { isStreaming, isOpen, duration } = useReasoning();
 
     return (
       <CollapsibleTrigger
         className={cn(
-          'flex items-center gap-1.5 text-muted-foreground text-xs transition-colors hover:text-foreground',
+          'group flex items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted/50 hover:text-foreground',
           className,
         )}
         {...props}
       >
         {children ?? (
           <>
-            <BrainIcon className="size-4" />
-            {isStreaming && <p>Thinking...</p>}
-            {duration > 0 && <p>Thought for {duration}s</p>}
-            {!isStreaming && duration === 0 && <p>Thoughts</p>}
-            <ChevronDownIcon
+            {/* Pulsing indicator when streaming */}
+            <div className="relative flex size-5 items-center justify-center">
+              {isStreaming && (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/40" />
+              )}
+              <SparklesIcon
+                className={cn(
+                  'relative size-4',
+                  isStreaming && 'text-primary',
+                )}
+              />
+            </div>
+
+            {/* Message text */}
+            <span className={cn(isStreaming && 'text-foreground')}>
+              {title || getThinkingMessage(isStreaming, duration)}
+            </span>
+
+            {/* Chevron */}
+            <ChevronRightIcon
               className={cn(
-                'size-3 text-muted-foreground transition-transform',
-                isOpen ? 'rotate-180' : 'rotate-0',
+                'ml-auto size-4 transition-transform duration-200',
+                isOpen && 'rotate-90',
               )}
             />
           </>
@@ -149,13 +200,19 @@ export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
     <CollapsibleContent
       className={cn(
-        'mt-2 text-muted-foreground text-xs',
-        'data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-hidden data-[state=closed]:animate-out data-[state=open]:animate-in',
+        'overflow-hidden',
+        'data-[state=closed]:animate-out data-[state=open]:animate-in',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        'data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2',
         className,
       )}
       {...props}
     >
-      <Response className="grid gap-2">{children}</Response>
+      <div className="mt-2 rounded-lg border border-dashed bg-muted/30 p-3">
+        <Response className="prose-sm text-muted-foreground text-xs leading-relaxed">
+          {children}
+        </Response>
+      </div>
     </CollapsibleContent>
   ),
 );

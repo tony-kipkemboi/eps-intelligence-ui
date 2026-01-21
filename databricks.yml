@@ -4,11 +4,10 @@ bundle:
 variables:
   serving_endpoint_name:
     description: "Name of the model serving endpoint to be used by the app"
-    # TODO: uncomment the line below and specify a default value to avoid needing to specify it on each deployment
-    default: "agents_eps_intelligence-agents-eps_account_agent"
+    default: "eps_account_agent_v2"
   database_instance_name:
     description: "Base name of the Lakebase database instance"
-    default: "eps-intelligence-lakebase"
+    default: "eps-intelligence-lakebase-v2"
   resource_name_suffix:
     description: "Suffix for resource names (app/lakebase instance names etc). Helpful for avoiding name collisions if multiple users deploy this app to the same workspace"
 
@@ -22,9 +21,9 @@ resources:
 
   apps:
     databricks_chatbot:
-      name: eps-intelligence-${var.resource_name_suffix}
+      name: eps-agent-${var.resource_name_suffix}
       description: "EPS Account Intelligence Agent - AI-powered account insights across Salesforce, Google Drive, Gong, Gmail, and Slack"
-      source_code_path: .
+      source_code_path: /Workspace/Users/${workspace.current_user.userName}/eps-chatbot-source
       resources:
         - name: serving-endpoint
           description: "Databricks serving endpoint name for the AI agent"
