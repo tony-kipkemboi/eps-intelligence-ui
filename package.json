@@ -1,6 +1,6 @@
 {
-  "name": "eps-intelligence",
-  "version": "1.0.0",
+  "name": "eps-intelligence-staging",
+  "version": "1.0.0-staging",
   "private": true,
   "workspaces": [
     "client",
@@ -37,10 +37,38 @@
   },
   "dependencies": {
     "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.7",
+    "drizzle-kit": "^0.18.1",
     "drizzle-orm": "^0.44.6",
     "react-syntax-highlighter": "16.1.0",
     "tsx": "^4.19.1"
+  },
+  "overrides": {
+    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
+    "esbuild": "^0.25.0",
+    "mermaid": {
+      "lodash-es": "^4.17.21"
+    },
+    "streamdown": {
+      "mermaid": {
+        "lodash-es": "^4.17.21"
+      }
+    },
+    "@mermaid-js/parser": {
+      "lodash-es": "^4.17.21"
+    },
+    "langium": {
+      "lodash-es": "^4.17.21"
+    },
+    "chevrotain": {
+      "lodash-es": "^4.17.21"
+    },
+    "@chevrotain/gast": {
+      "lodash-es": "^4.17.21"
+    },
+    "@chevrotain/cst-dts-gen": {
+      "lodash-es": "^4.17.21"
+    }
   },
   "devDependencies": {
     "@ai-sdk/provider": "^2.0.0",

@@ -37,7 +37,7 @@
   "dependencies": {
     "@chat-template/auth": "*",
     "@chat-template/utils": "*",
-    "drizzle-kit": "^0.31.7",
+    "drizzle-kit": "^0.18.1",
     "drizzle-orm": "^0.44.6",
     "postgres": "^3.4.4",
     "react-syntax-highlighter": "16.1.0"

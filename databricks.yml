@@ -4,38 +4,37 @@ bundle:
 variables:
   serving_endpoint_name:
     description: "Name of the model serving endpoint to be used by the app"
-    default: "eps_account_agent_v2"
+    default: "eps_account_agent_staging"
   database_instance_name:
     description: "Base name of the Lakebase database instance"
-    default: "eps-intelligence-lakebase-v2"
+    default: "eps-intelligence-lakebase"
   resource_name_suffix:
     description: "Suffix for resource names (app/lakebase instance names etc). Helpful for avoiding name collisions if multiple users deploy this app to the same workspace"
+    default: "staging"
+  source_code_suffix:
+    description: "Suffix for source code path to keep environments separate"
+    default: "staging-source"
+  app_description:
+    description: "Description for the Databricks App"
+    default: "EPS Account Intelligence Agent - AI-powered account insights"
 
 resources:
   database_instances:
-    # TODO (optional): Uncomment the database resource below to deploy the app with a database
     chatbot_lakebase:
-      # NOTE: customize the Lakebase instance name here, if desired
       name: ${var.database_instance_name}-${var.resource_name_suffix}
       capacity: CU_1
 
   apps:
     databricks_chatbot:
       name: eps-agent-${var.resource_name_suffix}
-      description: "EPS Account Intelligence Agent - AI-powered account insights across Salesforce, Google Drive, Gong, Gmail, and Slack"
-      source_code_path: /Workspace/Users/${workspace.current_user.userName}/eps-chatbot-source
+      description: ${var.app_description}
+      source_code_path: /Workspace/Users/${workspace.current_user.userName}/eps-chatbot-${var.source_code_suffix}
       resources:
         - name: serving-endpoint
           description: "Databricks serving endpoint name for the AI agent"
-          # NOTE: If chatting with an Agent Bricks Multi-Agent Supervisor (https://docs.databricks.com/aws/en/generative-ai/agent-bricks/multi-agent-supervisor),
-          # you need to additionally grant the app service principal the `CAN_QUERY` permission on the
-          # underlying agent(s) that the MAS orchestrates. You can do this by adding those
-          # agent serving endpoints as additional resources here.
           serving_endpoint:
             name: ${var.serving_endpoint_name}
             permission: CAN_QUERY
-        # TODO (optional): Uncomment the database resource below to bind the app to the deployed database instance
-        # and to enable persistent chat history
         - name: database
           description: "Lakebase database instance for the EPS Intelligence chat app"
           database:
@@ -44,18 +43,25 @@ resources:
             permission: CAN_CONNECT_AND_CREATE
 
 targets:
-  dev:
-    mode: development
-    default: true
-    variables:
-      resource_name_suffix: dev-${workspace.current_user.domain_friendly_name}
-
   staging:
     mode: production
+    default: true
+    workspace:
+      root_path: /Workspace/Users/tony.kipkemboi@guild.com/.bundle/${bundle.name}/${bundle.target}
     variables:
+      serving_endpoint_name: "eps_account_agent_staging"
+      database_instance_name: "eps-intelligence-lakebase"
       resource_name_suffix: "staging"
+      source_code_suffix: "staging-source"
+      app_description: "EPS Account Intelligence Agent - STAGING - AI-powered account insights across Salesforce, Google Drive, Gong, Gmail, and Slack"
 
   prod:
     mode: production
+    workspace:
+      root_path: /Workspace/Users/tony.kipkemboi@guild.com/.bundle/${bundle.name}/${bundle.target}
     variables:
+      serving_endpoint_name: "eps_account_agent_prod"
+      database_instance_name: "eps-intelligence-lakebase"
       resource_name_suffix: "prod"
+      source_code_suffix: "prod-source"
+      app_description: "EPS Account Intelligence Agent - PRODUCTION - AI-powered account insights across Salesforce, Google Drive, Gong, Gmail, and Slack"

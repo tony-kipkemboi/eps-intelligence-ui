@@ -2,9 +2,9 @@
 set -e  # Exit on any error
 
 PROFILE="eps_chatbot"
-TARGET="${1:-dev}"  # Default to dev, allow override with first argument
-PROJECT_DIR="/Users/tonykipkemboi/Workspace/eps-chatbot"
-WORKSPACE_SOURCE="/Workspace/Users/tony.kipkemboi@guild.com/eps-chatbot-source"
+TARGET="${1:-prod}"  # Default to prod for this production deployment
+PROJECT_DIR="/Users/tonykipkemboi/Workspace/eps-intel-ui-prod/eps-intelligence-ui"
+WORKSPACE_SOURCE="/Workspace/Users/tony.kipkemboi@guild.com/eps-agent-prod-source"
 
 echo "🚀 Deploying EPS Agent UI to Databricks Apps"
 echo "Target: $TARGET"
@@ -102,7 +102,9 @@ echo "   • Navigate to /Workspace/Users/881f3cd3-1bdb-40d3-86b3-f270e95d420f/s
 echo "   • Look for new deployment folder with current timestamp"
 echo ""
 echo "🌐 App URL:"
-if [ "$TARGET" = "dev" ]; then
+if [ "$TARGET" = "prod" ]; then
+  echo "   https://eps-agent-prod-7711090402957940.aws.databricksapps.com"
+elif [ "$TARGET" = "dev" ]; then
   echo "   https://eps-agent-dev-tony-kipkemboi-7711090402957940.aws.databricksapps.com"
 elif [ "$TARGET" = "staging" ]; then
   echo "   https://eps-agent-staging-7711090402957940.aws.databricksapps.com"
