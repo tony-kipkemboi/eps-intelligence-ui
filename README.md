@@ -84,17 +84,29 @@ eps-chatbot/
 
 ## Deployment
 
-Deploy to Databricks Apps using Asset Bundles:
+### Production
+
+The prod app (`eps-agent-prod`) deploys from a Databricks Git folder linked to this repo.
 
 ```bash
-# Validate configuration
-databricks bundle validate
+export DATABRICKS_CONFIG_PROFILE=eps_chatbot
 
-# Deploy
-databricks bundle deploy
+# 1. Push changes to GitHub
+git push origin main
 
-# Start the app
-databricks bundle run databricks_chatbot
+# 2. Pull latest in Databricks Git folder (Workspace > eps-intelligence-ui > Pull)
+
+# 3. Deploy the app
+databricks apps deploy eps-agent-prod --source-code-path /Workspace/Users/tony.kipkemboi@guild.com/eps-intelligence-ui --profile eps_chatbot
+```
+
+### Staging (via Asset Bundles)
+
+```bash
+export DATABRICKS_CONFIG_PROFILE=eps_chatbot
+databricks bundle validate -t staging
+databricks bundle deploy -t staging
+databricks bundle run databricks_chatbot -t staging
 ```
 
 See [SETUP.md](./SETUP.md) for detailed deployment instructions.
