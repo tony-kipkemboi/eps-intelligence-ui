@@ -234,7 +234,10 @@ export const ChainOfThoughtStep = memo(
         {/* Step content */}
         <div className="space-y-2">
           <div className="min-w-0">
-            <p className="font-medium text-foreground text-sm">{label}</p>
+            <p className={cn(
+              'font-medium text-sm',
+              status === 'active' ? 'animate-shimmer-text' : 'text-foreground',
+            )}>{label}</p>
             {description && (
               <p className="text-muted-foreground text-xs">{description}</p>
             )}

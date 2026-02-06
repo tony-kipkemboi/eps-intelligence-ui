@@ -135,10 +135,56 @@ const PurePreviewMessage = ({
     return message.parts.filter(isToolPart);
   }, [message.parts]);
 
-  // Filter out tool parts from regular segments (we'll render them separately)
+  // Find the index of the last tool part — any text before this is narration
+  const lastToolPartIndex = React.useMemo(() => {
+    for (let i = message.parts.length - 1; i >= 0; i--) {
+      if (isToolPart(message.parts[i])) return i;
+    }
+    return -1;
+  }, [message.parts]);
+
+  // Position-based narration: any non-empty text part before the last tool call
+  // is intermediate agent narration (e.g. "Let me search...", "Based on the results...")
+  const narrationParts = React.useMemo(() => {
+    return message.parts
+      .map((part, index) => ({ part, index }))
+      .filter(({ part, index }) =>
+        part.type === 'text' &&
+        part.text?.trim() &&
+        index < lastToolPartIndex &&
+        !isNamePart(part)
+      );
+  }, [message.parts, lastToolPartIndex]);
+
+  // Collect reasoning parts to render before Chain of Thought
+  const reasoningParts = React.useMemo(() => {
+    return message.parts
+      .map((part, index) => ({ part, index }))
+      .filter(({ part }) => part.type === 'reasoning' && part.text?.trim().length > 0);
+  }, [message.parts]);
+
+  // Set of part indices that belong in Chain of Thought (tools, narration, reasoning)
+  const cotPartIndices = React.useMemo(() => {
+    const indices = new Set<number>();
+    message.parts.forEach((part, index) => {
+      if (isToolPart(part)) indices.add(index);
+      if (part.type === 'reasoning') indices.add(index);
+    });
+    for (const { index } of narrationParts) {
+      indices.add(index);
+    }
+    return indices;
+  }, [message.parts, narrationParts]);
+
+  // Filter segments to only include parts NOT in the Chain of Thought
   const nonToolSegments = React.useMemo(
-    () => partSegments.filter(segment => !isToolPart(segment[0])),
-    [partSegments],
+    () => partSegments.filter(segment => {
+      const part = segment[0];
+      // Find this part's index in the original parts array
+      const partIndex = message.parts.indexOf(part);
+      return !cotPartIndices.has(partIndex);
+    }),
+    [partSegments, cotPartIndices, message.parts],
   );
 
   // Build source registry from all tool outputs for rich citation hover cards
@@ -211,8 +257,17 @@ const PurePreviewMessage = ({
             </div>
           )}
 
-          {/* Render all tool calls in a single Chain of Thought section */}
-          {allToolParts.length > 0 && (
+          {/* Render reasoning (thinking) before tool calls */}
+          {reasoningParts.map(({ part, index }) => (
+            <MessageReasoning
+              key={`reasoning-${index}`}
+              isLoading={isLoading && part.state === 'streaming'}
+              reasoning={part.text}
+            />
+          ))}
+
+          {/* Render all tool calls and narration in a single Chain of Thought section */}
+          {(allToolParts.length > 0 || narrationParts.length > 0) && (
             <ChainOfThought
               key={`message-${message.id}-tools`}
               defaultOpen={false}
@@ -254,50 +309,82 @@ const PurePreviewMessage = ({
                   ) : null;
                 })()}
 
-                {/* Individual tool steps */}
-                {allToolParts.map((toolPart) => {
-                  const toolName = toolPart.callProviderMetadata?.databricks?.toolName;
-                  const displayName = getToolDisplayName(toolName);
-                  const output =
-                    typeof toolPart.output === 'string'
-                      ? toolPart.output
-                      : JSON.stringify(toolPart.output, null, 2);
-                  const status =
-                    toolPart.state === 'output-available'
-                      ? 'complete'
-                      : toolPart.state === 'output-error'
-                        ? 'error'
-                        : toolPart.state === 'input-available'
-                          ? 'active'
-                          : 'pending';
+                {/* Render narration and tool steps interleaved in original order */}
+                {(() => {
+                  // Build a combined list sorted by position in original parts
+                  const steps: Array<{ index: number; type: 'narration' | 'tool'; part: ChatMessage['parts'][number] }> = [];
 
-                  return (
-                    <ChainOfThoughtStep
-                      key={toolPart.toolCallId}
-                      label={displayName}
-                      status={status}
-                    >
-                      <ChainOfThoughtDetails>
-                        <ToolInput input={toolPart.input} />
-                        {toolPart.state === 'output-available' && (
-                          <ToolOutput
-                            output={
-                              <div className="whitespace-pre-wrap font-mono text-sm">
-                                {output}
-                              </div>
-                            }
-                            errorText={undefined}
-                          />
-                        )}
-                        {toolPart.state === 'output-error' && toolPart.errorText && (
-                          <div className="rounded border border-red-200 bg-red-50 p-2 text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
-                            Error: {toolPart.errorText}
-                          </div>
-                        )}
-                      </ChainOfThoughtDetails>
-                    </ChainOfThoughtStep>
-                  );
-                })}
+                  for (const { part, index } of narrationParts) {
+                    steps.push({ index, type: 'narration', part });
+                  }
+                  for (const toolPart of allToolParts) {
+                    const idx = message.parts.indexOf(toolPart);
+                    steps.push({ index: idx, type: 'tool', part: toolPart });
+                  }
+                  steps.sort((a, b) => a.index - b.index);
+
+                  return steps.map(({ index, type, part }) => {
+                    if (type === 'narration') {
+                      const text = part.type === 'text' ? part.text?.trim() : '';
+                      // Skip MLflow "tool call" placeholder — not real narration
+                      if (!text || text.toLowerCase() === 'tool call') return null;
+                      return (
+                        <ChainOfThoughtStep
+                          key={`narration-${index}`}
+                          label="Thinking"
+                          status="complete"
+                        >
+                          <p className='pl-1 text-muted-foreground text-sm'>
+                            {text}
+                          </p>
+                        </ChainOfThoughtStep>
+                      );
+                    }
+
+                    const toolPart = part as ToolPart;
+                    const toolName = toolPart.callProviderMetadata?.databricks?.toolName;
+                    const displayName = getToolDisplayName(toolName);
+                    const output =
+                      typeof toolPart.output === 'string'
+                        ? toolPart.output
+                        : JSON.stringify(toolPart.output, null, 2);
+                    const status =
+                      toolPart.state === 'output-available'
+                        ? 'complete'
+                        : toolPart.state === 'output-error'
+                          ? 'error'
+                          : toolPart.state === 'input-available'
+                            ? 'active'
+                            : 'pending';
+
+                    return (
+                      <ChainOfThoughtStep
+                        key={toolPart.toolCallId}
+                        label={displayName}
+                        status={status}
+                      >
+                        <ChainOfThoughtDetails>
+                          <ToolInput input={toolPart.input} />
+                          {toolPart.state === 'output-available' && (
+                            <ToolOutput
+                              output={
+                                <div className="whitespace-pre-wrap font-mono text-sm">
+                                  {output}
+                                </div>
+                              }
+                              errorText={undefined}
+                            />
+                          )}
+                          {toolPart.state === 'output-error' && toolPart.errorText && (
+                            <div className="rounded border border-red-200 bg-red-50 p-2 text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+                              Error: {toolPart.errorText}
+                            </div>
+                          )}
+                        </ChainOfThoughtDetails>
+                      </ChainOfThoughtStep>
+                    );
+                  });
+                })()}
               </ChainOfThoughtContent>
             </ChainOfThought>
           )}
@@ -308,16 +395,6 @@ const PurePreviewMessage = ({
             const parts = segment;
             const [part] = parts;
             const { type } = part;
-
-            if (type === 'reasoning' && part.text?.trim().length > 0) {
-              return (
-                <MessageReasoning
-                  key={key}
-                  isLoading={isLoading}
-                  reasoning={part.text}
-                />
-              );
-            }
 
             if (type === 'text') {
               if (isNamePart(part)) {
@@ -334,7 +411,7 @@ const PurePreviewMessage = ({
                     <MessageContent
                       data-testid="message-content"
                       className={cn({
-                        'w-fit break-words rounded-2xl bg-muted px-3 py-2 text-right text-foreground':
+                        'w-fit break-words rounded-2xl bg-muted px-3 py-2 text-left text-foreground':
                           message.role === 'user',
                         'bg-transparent px-0 py-0 text-left':
                           message.role === 'assistant',

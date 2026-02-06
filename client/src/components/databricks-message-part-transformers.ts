@@ -3,6 +3,47 @@ import { createDatabricksMessageCitationMarkdown } from './databricks-message-ci
 import type { TextUIPart } from 'ai';
 
 /**
+ * Patterns that indicate agent narration text (should go in Chain of Thought, not main response).
+ * These are short phrases the agent outputs between tool calls.
+ */
+const NARRATION_PATTERNS = [
+  /^tool call$/i,
+  /^(now )?let me (search|look|check|compile|find|get)/i,
+  /^(now )?let me .* to (get|ensure|understand|compile|find)/i,
+  /^searching /i,
+  /^I('ll| will) (search|look|check|find|compile)/i,
+  /^I('m| am) (searching|looking|checking|compiling|finding)/i,
+  /^Based on (my |the )?(comprehensive |deep )?(research|search|analysis)/i,
+];
+
+/**
+ * Check if raw text string matches narration patterns.
+ */
+export const isNarrationText = (text: string): boolean => {
+  const trimmed = text.trim();
+
+  // Only short text can be narration (prevents false positives on explanations)
+  if (trimmed.length > 150) return false;
+
+  // Don't filter if it looks like a question or explanation
+  if (trimmed.includes('?')) return false;
+
+  // Check against narration patterns
+  return NARRATION_PATTERNS.some((pattern) => pattern.test(trimmed));
+};
+
+/**
+ * Checks if a text part is agent narration that should be moved to Chain of Thought.
+ * Only matches short text (< 150 chars) that matches narration patterns.
+ */
+export const isNarrationPart = (
+  part: ChatMessage['parts'][number],
+): part is TextUIPart => {
+  if (part.type !== 'text') return false;
+  return isNarrationText(part.text || '');
+};
+
+/**
  * Creates segments of parts that can be rendered as a single component.
  * Used to render citations as part of the associated text.
  */
@@ -28,7 +69,10 @@ export const createMessagePartSegments = (parts: ChatMessage['parts']) => {
       lastBlock?.[0]?.type === 'text' &&
       part.type === 'text' &&
       !isNamePart(part) &&
-      !isNamePart(lastBlock[0])
+      !isNamePart(lastBlock[0]) &&
+      // Don't merge narration parts - keep them separate so they can be filtered
+      !isNarrationPart(part) &&
+      !isNarrationPart(lastBlock[0])
     ) {
       // If the text part, or the previous part contains a <name></name> tag, add it to a new block
       // Otherwise, append sequential text parts to the same block
@@ -59,16 +103,26 @@ export const formatNamePart = (part: ChatMessage['parts'][number]) => {
 };
 
 /**
+ * Strips narration lines from text content.
+ * This is a safety net for any narration that slipped through part-level filtering.
+ */
+export const stripNarrationFromText = (text: string): string => {
+  // Split by newlines, filter out narration lines, rejoin
+  const lines = text.split('\n');
+  const filteredLines = lines.filter((line) => !isNarrationText(line));
+  return filteredLines.join('\n').trim();
+};
+
+/**
  * Takes a segment of parts and joins them into a markdown-formatted string.
  * Used to render citations as part of the associated text.
  */
 export const joinMessagePartSegments = (parts: ChatMessage['parts']) => {
-  return parts.reduce((acc, part) => {
+  const joined = parts.reduce((acc, part) => {
     switch (part.type) {
       case 'text':
         return acc + part.text;
       case 'source-url':
-        console.log("acc.endsWith('|')", acc.endsWith('|'));
         // Special case for markdown tables
         if (acc.endsWith('|')) {
           // 1. Remove the last pipe
@@ -81,4 +135,7 @@ export const joinMessagePartSegments = (parts: ChatMessage['parts']) => {
         return acc;
     }
   }, '');
+
+  // Strip any remaining narration lines as a safety net
+  return stripNarrationFromText(joined);
 };
