@@ -4,7 +4,7 @@ bundle:
 variables:
   serving_endpoint_name:
     description: "Name of the model serving endpoint to be used by the app"
-    default: "eps_account_agent_staging"
+    default: "eps_account_agent_v2"
   database_instance_name:
     description: "Base name of the Lakebase database instance"
     default: "eps-intelligence-lakebase"
@@ -49,7 +49,7 @@ targets:
     workspace:
       root_path: /Workspace/Users/tony.kipkemboi@guild.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      serving_endpoint_name: "eps_account_agent_staging"
+      serving_endpoint_name: "eps_account_agent_v2"
       database_instance_name: "eps-intelligence-lakebase"
       resource_name_suffix: "staging"
       source_code_suffix: "staging-source"
@@ -60,7 +60,7 @@ targets:
     workspace:
       root_path: /Workspace/Users/tony.kipkemboi@guild.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      serving_endpoint_name: "eps_account_agent_prod"
+      serving_endpoint_name: "eps_account_agent_prod_v2"
       database_instance_name: "eps-intelligence-lakebase"
       resource_name_suffix: "prod"
       source_code_suffix: "prod-source"
