@@ -131,39 +131,29 @@ npx playwright test --headed --project=e2e  # Run E2E tests with browser visible
 
 ### Deployment
 
-#### Production (Git folder deploy)
-
-The prod app (`eps-agent-prod`) deploys from a Databricks Git folder linked to the GitHub repo.
+Both staging and prod UI apps deploy from a single Databricks Git folder (`eps-intelligence-ui`) linked to this repo's `main` branch.
 
 ```bash
-export DATABRICKS_CONFIG_PROFILE=eps_chatbot
-
 # 1. Push changes to GitHub
 git push origin main
 
 # 2. Pull latest in Databricks Git folder (Workspace > eps-intelligence-ui > Pull)
 
-# 3. Deploy the app
+# 3. Deploy staging
+databricks apps deploy eps-agent-staging --source-code-path /Workspace/Users/tony.kipkemboi@guild.com/eps-intelligence-ui --profile eps_chatbot
+
+# 4. Deploy prod
 databricks apps deploy eps-agent-prod --source-code-path /Workspace/Users/tony.kipkemboi@guild.com/eps-intelligence-ui --profile eps_chatbot
 ```
 
-**Note**: Step 2 (pull in Databricks) is required even for non-UI changes, since the deploy takes a snapshot of the Git folder. If the change only affects the backend agent (not this UI repo), no UI redeploy is needed.
-
-#### Staging (Asset Bundles)
-
-```bash
-export DATABRICKS_CONFIG_PROFILE=eps_chatbot
-databricks bundle validate -t staging
-databricks bundle deploy -t staging
-databricks bundle run databricks_chatbot -t staging
-```
+**Note**: Step 2 (pull in Databricks) is required for UI deploys since the deploy takes a snapshot of the Git folder. If the change only affects the backend agent (not this UI repo), no UI redeploy is needed.
 
 #### Serving Endpoints
 
-| Target  | Endpoint Name              |
-|---------|----------------------------|
-| staging | `eps_account_agent_v2`     |
-| prod    | `eps_account_agent_prod_v2`|
+| Target  | App Name           | Endpoint Name              |
+|---------|--------------------|----------------------------|
+| staging | `eps-agent-staging` | `eps_account_agent_v2`     |
+| prod    | `eps-agent-prod`   | `eps_account_agent_prod_v2`|
 
 ## Code Style Guidelines
 

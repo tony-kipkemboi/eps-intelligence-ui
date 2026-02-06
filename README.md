@@ -84,30 +84,22 @@ eps-chatbot/
 
 ## Deployment
 
-### Production
-
-The prod app (`eps-agent-prod`) deploys from a Databricks Git folder linked to this repo.
+Both staging and prod apps deploy from a single Databricks Git folder linked to this repo (`main` branch).
 
 ```bash
-export DATABRICKS_CONFIG_PROFILE=eps_chatbot
-
 # 1. Push changes to GitHub
 git push origin main
 
 # 2. Pull latest in Databricks Git folder (Workspace > eps-intelligence-ui > Pull)
 
-# 3. Deploy the app
+# 3. Deploy staging
+databricks apps deploy eps-agent-staging --source-code-path /Workspace/Users/tony.kipkemboi@guild.com/eps-intelligence-ui --profile eps_chatbot
+
+# 4. Deploy prod
 databricks apps deploy eps-agent-prod --source-code-path /Workspace/Users/tony.kipkemboi@guild.com/eps-intelligence-ui --profile eps_chatbot
 ```
 
-### Staging (via Asset Bundles)
-
-```bash
-export DATABRICKS_CONFIG_PROFILE=eps_chatbot
-databricks bundle validate -t staging
-databricks bundle deploy -t staging
-databricks bundle run databricks_chatbot -t staging
-```
+Each app has its own serving endpoint configured in Databricks (staging: `eps_account_agent_v2`, prod: `eps_account_agent_prod_v2`).
 
 See [SETUP.md](./SETUP.md) for detailed deployment instructions.
 
